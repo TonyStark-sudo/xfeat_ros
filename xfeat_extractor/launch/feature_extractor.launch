@@ -2,7 +2,7 @@
     <node pkg="xfeat_extractor" name="realtime_demo_node" type="realtime_demo_node.py" output="screen"> 
         <param name="image_topic" value="/usb_camera/gray/image_raw"/>
         <!-- <param name="image_topic" value="/usb_camera/color/image_raw"/> -->
-        <param name="method" value="XFeat"/>
+        <param name="method" value="ORB"/>
         <param name="max_kpts" value="3000"/>
     </node>
 

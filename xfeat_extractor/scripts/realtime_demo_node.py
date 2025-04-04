@@ -1,8 +1,8 @@
-'''
-xfeat demo overrided by ros
-by lvwenzhen 2025.04.04 
-'''
 #!/usr/bin/env python3
+"""
+xfeat demo overrided by ros
+by lvwenzhen 2025.04.04
+"""
 
 import rospy
 from sensor_msgs.msg import Image
@@ -291,7 +291,8 @@ if __name__ == "__main__" :
     args = Args()
     demo_node = MatchDemoNode(args=args)
     print("Available param: ")
-    print("image_topic: ", rospy.get_param('/realtime_demo_node/image_topic', 'default_value'))
-    print("method: ", rospy.get_param('/realtime_demo_node/method', 'default_value'))
-    print("max_kpts: ", rospy.get_param('/realtime_demo_node/max_kpts', 'default_value'))
+    print(rospy.get_param_names())
+    print("image_topic: ", rospy.get_param('/realtime_demo_node/image_topic'))
+    print("method: ", rospy.get_param('/realtime_demo_node/method'))
+    print("max_kpts: ", rospy.get_param('/realtime_demo_node/max_kpts'))
     demo_node.run()
