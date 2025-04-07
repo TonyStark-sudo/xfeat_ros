@@ -4,6 +4,7 @@ xfeat demo overrided by ros
 by lvwenzhen 2025.04.04
 """
 
+import os
 import rospy
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
@@ -45,7 +46,7 @@ class MatchDemoNode:
         self.height = None
         self.ref_frame = None
         self.current_frame = None
-        if args.method in ["ORB", "SIFT"]:
+        if self.args.method in ["ORB", "SIFT"]:
             self.ref_precomp = [[], []]
         else:
             # current['keypoints'], current['descriptors']
@@ -56,6 +57,8 @@ class MatchDemoNode:
         self.method = self.init_Method()
         self.first_msg_flag = True
         self.keyboard_call_flag = False
+        self.save_image = False
+        self.save_path = f"/home/mark50/loop_optimized/extractor_ws/src/xfeat_extractor/scripts/output/{self.args.method}"
         self.listener = keyboard.Listener(on_press=self.waiting_keyboard)
         self.listener.start()
 
@@ -131,20 +134,23 @@ class MatchDemoNode:
 
         self.current_frame = image
         top_frame_canvas = self.create_top_frame()
-        t0 = time()
 
         matched_frame, good_matches = self.match(self.ref_frame, self.current_frame)
-        self.time_list.append(time() - t0)
-        if len(self.time_list) > self.max_cnt:
-            self.time_list.pop(0)
-        self.FPS = 1.0 / np.array(self.time_list).mean()
-
+        # self.time_list.append(time() - t0)
+        # if len(self.time_list) > self.max_cnt:
+        #     self.time_list.pop(0)
+        # self.FPS = 1.0 / np.array(self.time_list).mean()
         bottom_frame = self.draw_matches(matched_frame, good_matches)
 
         if self.H is not None and len(self.corners) > 1:
             self.draw_quad(top_frame_canvas, self.warp_points(self.corners, self.H, self.width))
 
         canvas = np.vstack((top_frame_canvas, bottom_frame))
+        if self.save_image:
+            os.makedirs(self.save_path, exist_ok=True)
+            image_save_path = os.path.join(self.save_path, f"{msg.header.stamp}.png")
+            cv2.imwrite(image_save_path, canvas)
+            print(f"save image_save_path {image_save_path} done !!!")
         canvas_msg = self.cv_bridge.cv2_to_imgmsg(canvas, encoding="rgb8")
         canvas_msg.header = msg.header
         self.pub.publish(canvas_msg)
@@ -198,7 +204,8 @@ class MatchDemoNode:
         matches, good_matches = [], []
         kp1, kp2 = [], []
         points1, points2 = [], []
-
+        
+        t0 = time()
         # Detect and compute features
         if self.args.method in ['SIFT', 'ORB']:
             # 理论上 kp2:List[cv2.KeyPoint] des2:np.ndarray
@@ -225,7 +232,12 @@ class MatchDemoNode:
             # kpts2, descs2 = current[0], current[1]
             # 使用了两个描述符做点积的经典match方式，基于余弦相似度的匹配
             idx0, idx1 = self.method.matcher.match(descs1, descs2, 0.82)
-
+            time_cost_per_frame = time() - t0
+            # print(f"xfeat method cost {time_cost_per_frame}")
+            self.time_list.append(time_cost_per_frame)
+            if len(self.time_list) > self.max_cnt:
+                self.time_list.pop()
+            self.FPS = 1.0 / np.array(self.time_list).mean()
             points1 = kpts1[idx0].cpu().numpy()
             points2 = kpts2[idx1].cpu().numpy()
 
@@ -233,7 +245,12 @@ class MatchDemoNode:
             # Match descriptors
             # matches:List[cv2.DMatch]
             matches = self.method.matcher.match(des1, des2)
-
+            time_cost_per_frame = time() - t0
+            # print(f"handcrafted method cost {time() - t0}")
+            self.time_list.append(time_cost_per_frame)
+            if len(self.time_list) > self.max_cnt:
+                self.time_list.pop()
+            self.FPS = 1.0 / np.array(self.time_list).mean()
             if len(matches) > 10:
                 points1 = np.zeros((len(matches), 2), dtype=np.float32) # [匹配个数， 2]
                 points2 = np.zeros((len(matches), 2), dtype=np.float32)

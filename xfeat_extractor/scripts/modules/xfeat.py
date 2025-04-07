@@ -22,7 +22,8 @@ class XFeat(nn.Module):
 
 	def __init__(self, weights = os.path.abspath(os.path.dirname(__file__)) + '/../weights/xfeat.pt', top_k = 4096, detection_threshold=0.05):
 		super().__init__()
-		self.dev = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+		# self.dev = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+		self.dev = torch.device("cpu")
 		self.net = XFeatModel().to(self.dev).eval()
 		self.top_k = top_k
 		self.detection_threshold = detection_threshold
